@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Setup and usage questions
+    url: https://github.com/slegarraga/commandcode-router/discussions
+    about: Ask the community before filing a defect.
+  - name: Security vulnerability
+    url: https://github.com/slegarraga/commandcode-router/security/advisories/new
+    about: Report vulnerabilities privately. Never include credentials.
+  - name: Command Code account support
+    url: https://commandcode.ai/
+    about: Billing, entitlement, and upstream account issues belong with Command Code.

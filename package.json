@@ -1,0 +1,53 @@
+{
+  "name": "commandcode-router",
+  "version": "0.1.0",
+  "description": "Use Command Code models inside Codex.",
+  "type": "module",
+  "license": "MIT",
+  "author": "Sebastian Legarraga",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/slegarraga/commandcode-router.git"
+  },
+  "bugs": {
+    "url": "https://github.com/slegarraga/commandcode-router/issues"
+  },
+  "homepage": "https://github.com/slegarraga/commandcode-router#readme",
+  "bin": {
+    "commandcode-router": "./bin/commandcode-router.mjs"
+  },
+  "files": [
+    "bin",
+    "config",
+    "src",
+    "LICENSE",
+    "NOTICE.md",
+    "README.md"
+  ],
+  "scripts": {
+    "check": "tsc --noEmit",
+    "test": "node --test",
+    "test:coverage": "node --test --experimental-test-coverage --test-coverage-include='src/**/*.mjs' --test-coverage-exclude='src/cli.mjs' --test-coverage-lines=90 --test-coverage-branches=68 --test-coverage-functions=85",
+    "validate:codex": "node scripts/validate-codex-catalog.mjs",
+    "verify": "npm run check && npm test"
+  },
+  "engines": {
+    "node": ">=22.19.0"
+  },
+  "keywords": [
+    "codex",
+    "command-code",
+    "llm",
+    "proxy",
+    "router"
+  ],
+  "dependencies": {
+    "@ai-sdk/anthropic": "4.0.47",
+    "@ai-sdk/openai-compatible": "3.0.42",
+    "ai": "7.0.89"
+  },
+  "devDependencies": {
+    "@types/node": "24.3.0",
+    "typescript": "6.0.2"
+  }
+}

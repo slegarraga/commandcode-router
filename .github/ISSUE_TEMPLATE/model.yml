@@ -1,0 +1,35 @@
+name: Model compatibility
+description: Propose or report compatibility for one Command Code model.
+title: "model: "
+labels: [model, triage]
+body:
+  - type: input
+    id: model
+    attributes:
+      label: Exact official model ID
+    validations:
+      required: true
+  - type: dropdown
+    id: protocol
+    attributes:
+      label: Protocol
+      options:
+        - Chat Completions
+        - Messages
+        - Unknown
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Evidence
+      description: Redacted discovery, text, tool, apply_patch, reasoning, context, and error-path results.
+    validations:
+      required: true
+  - type: checkboxes
+    id: safety
+    attributes:
+      label: Safety check
+      options:
+        - label: I removed credentials, prompts, capability URLs, and private data.
+          required: true

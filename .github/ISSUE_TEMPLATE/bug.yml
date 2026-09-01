@@ -1,0 +1,56 @@
+name: Bug report
+description: Report a reproducible router defect.
+title: "bug: "
+labels: [bug, triage]
+body:
+  - type: markdown
+    attributes:
+      value: "Do not paste API keys, authorization headers, capability URLs, private prompts, file contents, or raw provider bodies."
+  - type: input
+    id: version
+    attributes:
+      label: Router version
+      placeholder: "0.1.0"
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Environment
+      description: macOS, Node, and Codex versions.
+    validations:
+      required: true
+  - type: input
+    id: model
+    attributes:
+      label: Model slug
+      placeholder: commandcode/...
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Reproduction
+      description: Minimal, safe steps starting from a clean launch.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+      description: Include redacted doctor/status output when useful.
+    validations:
+      required: true
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Safety check
+      options:
+        - label: I removed credentials, prompts, capability URLs, and private data.
+          required: true
