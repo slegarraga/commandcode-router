@@ -38,3 +38,23 @@ test("discovers model ids from the official provider shape", async () => {
   });
   assert.deepEqual([...ids], ["one", "two"]);
 });
+
+test("explains rejected keys and Go-plan entitlements without leaking bodies", async () => {
+  await assert.rejects(
+    () => discoverModelIds({
+      fetch: async () => new Response("{\"secret\":\"nope\"}", { status: 401 }),
+    }),
+    { code: "invalid_api_key", message: "Command Code rejected the configured API key." },
+  );
+  await assert.rejects(
+    () => discoverModelIds({
+      fetch: async () => new Response("{\"error\":{\"code\":\"upgrade_required\"},\"secret\":\"nope\"}", {
+        status: 403,
+      }),
+    }),
+    {
+      code: "upgrade_required",
+      message: "Command Code Provider API access requires a GOAT or higher plan.",
+    },
+  );
+});

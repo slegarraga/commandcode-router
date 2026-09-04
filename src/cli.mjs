@@ -3,6 +3,7 @@ import { Writable } from "node:stream";
 import { createInterface } from "node:readline/promises";
 import { fileURLToPath } from "node:url";
 
+import { discoverModelIds } from "./catalog.mjs";
 import { install, refreshCatalog, uninstall } from "./installer.mjs";
 import { atomicWrite } from "./files.mjs";
 import { loadApiKey, removeApiKey, storeApiKey } from "./key-store.mjs";
@@ -19,8 +20,8 @@ const HELP = `commandcode-router ${version}
 Use Command Code models inside Codex. No menu bar, no separate UI.
 
 Usage:
-  commandcode-router key set
   commandcode-router install [--port 4219] [--no-service]
+  commandcode-router key set
   commandcode-router status
   commandcode-router doctor
   commandcode-router models refresh
@@ -28,6 +29,7 @@ Usage:
   commandcode-router stop
   commandcode-router uninstall [--no-service]
 
+install asks for a Command Code API key if one is not already stored.
 The official Command Code Provider API requires GOAT or a higher plan.
 `;
 
@@ -59,14 +61,30 @@ async function secretInput() {
       callback();
     },
   });
+  process.stdout.write("Create a key at https://commandcode.ai/settings/keys (GOAT or higher).\n");
   const readline = createInterface({ input: process.stdin, output, terminal: true });
-  const answer = readline.question("Command Code API key: ");
+  const answer = readline.question("Command Code API key (hidden): ");
   muted = true;
   const value = await answer;
   muted = false;
   readline.close();
   process.stdout.write("\n");
   return value.trim();
+}
+
+/**
+ * @param {ReturnType<typeof routerPaths>} paths
+ * @param {{
+ *   readSecret?: () => Promise<string>,
+ *   verify?: (apiKey: string) => Promise<unknown>,
+ * }} [options]
+ */
+export async function ensureStoredApiKey(paths, options = {}) {
+  if (loadApiKey({ paths })) return false;
+  const value = await (options.readSecret ?? secretInput)();
+  await (options.verify ?? ((apiKey) => discoverModelIds({ apiKey })))(value);
+  storeApiKey(value, { paths });
+  return true;
 }
 
 /** @param {ReturnType<typeof routerPaths>} paths */
@@ -115,9 +133,14 @@ export async function main(args) {
     process.stdout.write(`${version}\n`);
     return;
   }
+  if (!supportedNode(process.versions.node)) {
+    throw new Error(`commandcode-router needs Node.js 22.19 or newer. This process is v${process.versions.node}.`);
+  }
 
   if (command === "key" && subject === "set") {
-    storeApiKey(await secretInput(), { paths });
+    const value = await secretInput();
+    await discoverModelIds({ apiKey: value });
+    storeApiKey(value, { paths });
     process.stdout.write("Command Code API key stored with mode 0600.\n");
     if (loadState({ paths })) installService({ paths });
     return;
@@ -135,8 +158,12 @@ export async function main(args) {
     if (port !== undefined && (!Number.isInteger(port) || port < 1024 || port > 65_535)) {
       throw new Error("--port must be an integer from 1024 through 65535.");
     }
+    if (await ensureStoredApiKey(paths)) {
+      process.stdout.write("Command Code API key stored with mode 0600.\n");
+    }
     const result = await install({ paths, port, service: !args.includes("--no-service") });
-    process.stdout.write(`Installed ${result.modelCount} reviewed Command Code models. Fully quit and reopen Codex.\n`);
+    process.stdout.write(`Installed ${result.modelCount} reviewed Command Code models.\n`);
+    process.stdout.write("Fully quit Codex (Cmd+Q on macOS) and reopen it. Command Code models appear in the picker.\n");
     return;
   }
 
