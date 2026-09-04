@@ -1,6 +1,7 @@
 # commandcode-router
 
 [![CI](https://github.com/slegarraga/commandcode-router/actions/workflows/ci.yml/badge.svg)](https://github.com/slegarraga/commandcode-router/actions/workflows/ci.yml)
+[![npm](https://img.shields.io/npm/v/commandcode-router.svg)](https://www.npmjs.com/package/commandcode-router)
 [![MIT licensed](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 Use Command Code models inside Codex. Headless by design: no menu bar item, tray app, settings window, or second chat interface.
