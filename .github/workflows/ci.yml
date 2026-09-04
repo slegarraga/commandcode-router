@@ -31,5 +31,14 @@ jobs:
       - run: npm run verify
       - if: matrix.node == '22.19.0'
         run: npm run test:coverage
-      - run: npm audit --audit-level=high
+      - name: Audit
+        run: |
+          for attempt in 1 2 3; do
+            if npm audit --audit-level=high; then
+              exit 0
+            fi
+            echo "npm audit failed (attempt ${attempt})"
+            sleep $((attempt * 10))
+          done
+          exit 1
       - run: npm pack --dry-run

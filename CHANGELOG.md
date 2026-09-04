@@ -4,6 +4,12 @@ All notable changes will be documented here. The project follows [Semantic Versi
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-09-03
+
+### Changed
+
+- Releases publish to npm from GitHub Actions with provenance via OIDC. The package requires the `release` environment as a trusted publisher.
+
 ## [0.1.0] - 2026-09-03
 
 ### Changed
