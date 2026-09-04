@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { gzipSync } from "node:zlib";
 import test from "node:test";
 
 import { startServer } from "../src/server.mjs";
@@ -135,4 +136,74 @@ test("passes native models through with the caller authorization", async (t) => 
     url: "https://native.test/backend-api/codex/responses",
     authorization: "Bearer native-token",
   }]);
+});
+
+test("forwards non-JSON Responses bodies to the native Codex API", async (t) => {
+  /** @type {Array<{ url: string, body: string }>} */
+  const captures = [];
+  const server = /** @type {import("node:http").Server} */ (await startServer({
+    secret: SECRET,
+    apiKey: "key",
+    port: 0,
+    nativeBaseURL: "https://native.test/backend-api/codex",
+    fetch: async (url, init) => {
+      const raw = init?.body;
+      captures.push({
+        url: String(url),
+        body: raw instanceof Uint8Array ? Buffer.from(raw).toString("utf8") : "",
+      });
+      return new Response("native", { status: 200 });
+    },
+    logger: { info() {}, error() {} },
+  }));
+  t.after(() => server.close());
+
+  const empty = await fetch(`${origin(server)}/_commandcode/${SECRET}/v1/responses`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+  });
+  const raw = await fetch(`${origin(server)}/_commandcode/${SECRET}/v1/responses`, {
+    method: "POST",
+    headers: { "content-type": "application/octet-stream" },
+    body: Buffer.from([0x00, 0x01, 0x02]),
+  });
+
+  assert.equal(empty.status, 200);
+  assert.equal(raw.status, 200);
+  assert.deepEqual(captures, [
+    { url: "https://native.test/backend-api/codex/responses", body: "" },
+    { url: "https://native.test/backend-api/codex/responses", body: "\u0000\u0001\u0002" },
+  ]);
+});
+
+test("routes gzipped Command Code Responses JSON", async (t) => {
+  const server = /** @type {import("node:http").Server} */ (await startServer({
+    secret: SECRET,
+    apiKey: "key",
+    port: 0,
+    fetch: async () => new Response(openAiSse(), {
+      headers: { "content-type": "text/event-stream" },
+    }),
+    logger: { info() {}, error() {} },
+  }));
+  t.after(() => server.close());
+
+  const payload = JSON.stringify({
+    model: "commandcode/deepseek/example",
+    input: "hello",
+    stream: true,
+  });
+  const response = await fetch(`${origin(server)}/_commandcode/${SECRET}/v1/responses`, {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      "content-encoding": "gzip",
+    },
+    body: gzipSync(payload),
+  });
+  const stream = await response.text();
+
+  assert.equal(response.status, 200);
+  assert.match(stream, /event: response\.output_text\.delta/);
+  assert.match(stream, /"delta":"hello"/);
 });

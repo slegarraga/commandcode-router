@@ -1,4 +1,5 @@
 import http from "node:http";
+import zlib from "node:zlib";
 import { Readable } from "node:stream";
 
 import { publicError, RouterError } from "./errors.mjs";
@@ -31,6 +32,34 @@ async function body(request) {
     chunks.push(chunk);
   }
   return Buffer.concat(chunks);
+}
+
+/**
+ * Best-effort JSON sniff for Command Code routing.
+ * Native pass-through keeps the original bytes when the body is empty,
+ * gzipped, or not JSON.
+ *
+ * @param {Buffer} bytes
+ * @param {http.IncomingHttpHeaders} headers
+ */
+function decodeResponsesPayload(bytes, headers) {
+  if (!bytes.length) return null;
+  let raw = bytes;
+  const encoding = String(headers["content-encoding"] ?? "").toLowerCase();
+  if (encoding.includes("gzip") || (raw[0] === 0x1f && raw[1] === 0x8b)) {
+    try {
+      raw = zlib.gunzipSync(raw);
+    } catch {
+      return null;
+    }
+  }
+  const text = raw.toString("utf8").replace(/^\uFEFF/, "").trim();
+  if (!text) return null;
+  try {
+    return JSON.parse(text);
+  } catch {
+    return null;
+  }
 }
 
 /** @param {http.IncomingHttpHeaders} source */
@@ -186,12 +215,7 @@ export function createHandler(options) {
         request.method === "POST" &&
         url.pathname === `${prefix}/responses`
       ) {
-        let payload;
-        try {
-          payload = JSON.parse(bytes.toString("utf8"));
-        } catch {
-          throw new RouterError("invalid_json", "The request body must be valid JSON.", { status: 400 });
-        }
+        const payload = decodeResponsesPayload(bytes, request.headers);
         if (payload && typeof payload === "object" && isCommandCode(String(payload.model ?? ""))) {
           await respondWithCommandCode(request, response, payload, {
             apiKey: options.apiKey,
