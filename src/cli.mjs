@@ -19,8 +19,8 @@ const HELP = `commandcode-router ${version}
 Use Command Code models inside Codex. No menu bar, no separate UI.
 
 Usage:
-  commandcode-router key set
   commandcode-router install [--port 4219] [--no-service]
+  commandcode-router key set
   commandcode-router status
   commandcode-router doctor
   commandcode-router models refresh
@@ -28,6 +28,7 @@ Usage:
   commandcode-router stop
   commandcode-router uninstall [--no-service]
 
+install asks for a Command Code API key if one is not already stored.
 The official Command Code Provider API requires GOAT or a higher plan.
 `;
 
@@ -60,13 +61,23 @@ async function secretInput() {
     },
   });
   const readline = createInterface({ input: process.stdin, output, terminal: true });
-  const answer = readline.question("Command Code API key: ");
+  const answer = readline.question("Command Code API key (hidden): ");
   muted = true;
   const value = await answer;
   muted = false;
   readline.close();
   process.stdout.write("\n");
   return value.trim();
+}
+
+/**
+ * @param {ReturnType<typeof routerPaths>} paths
+ * @param {() => Promise<string>} [readSecret]
+ */
+export async function ensureStoredApiKey(paths, readSecret = secretInput) {
+  if (loadApiKey({ paths })) return false;
+  storeApiKey(await readSecret(), { paths });
+  return true;
 }
 
 /** @param {ReturnType<typeof routerPaths>} paths */
@@ -134,6 +145,9 @@ export async function main(args) {
     const port = rawPort === undefined ? undefined : Number(rawPort);
     if (port !== undefined && (!Number.isInteger(port) || port < 1024 || port > 65_535)) {
       throw new Error("--port must be an integer from 1024 through 65535.");
+    }
+    if (await ensureStoredApiKey(paths)) {
+      process.stdout.write("Command Code API key stored with mode 0600.\n");
     }
     const result = await install({ paths, port, service: !args.includes("--no-service") });
     process.stdout.write(`Installed ${result.modelCount} reviewed Command Code models. Fully quit and reopen Codex.\n`);

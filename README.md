@@ -34,19 +34,18 @@ git clone https://github.com/slegarraga/commandcode-router.git
 cd commandcode-router
 npm ci
 npm link
-commandcode-router key set
 commandcode-router install
 ```
 
-Fully quit and reopen Codex. Command Code models then appear beside native models in the picker.
+`install` asks for a Command Code API key if one is not already stored, saves it with mode `0600`, writes the Codex integration, and starts the headless service. Fully quit and reopen Codex. Command Code models then appear beside native models in the picker.
 
 The installer fails closed if `openai_base_url` or `model_catalog_json` already belongs to you or another router. Remove that integration intentionally before installing this one.
 
 ## Commands
 
 ```text
+commandcode-router install          Prompt for a key if needed, then install
 commandcode-router key set          Store or replace the API key
-commandcode-router install          Install config, catalog, and service
 commandcode-router status           Show install, key, and service state
 commandcode-router doctor           Run local health checks
 commandcode-router models refresh   Reconcile reviewed models with the live API

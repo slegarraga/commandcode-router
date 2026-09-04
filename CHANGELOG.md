@@ -4,6 +4,10 @@ All notable changes will be documented here. The project follows [Semantic Versi
 
 ## [Unreleased]
 
+### Changed
+
+- `commandcode-router install` now asks for a Command Code API key when none is stored, so the happy path is a single command after `npm link`.
+
 ### Added
 
 - Headless Codex integration with native-model pass-through.
