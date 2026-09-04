@@ -8,7 +8,7 @@ All notable changes will be documented here. The project follows [Semantic Versi
 
 ### Changed
 
-- Releases publish to npm from GitHub Actions with provenance via OIDC. The package requires the `release` environment as a trusted publisher. The publish job must not set `setup-node` `registry-url`, or npm treats an empty token as auth and 404s.
+- Releases publish to npm from GitHub Actions with provenance via OIDC. The package requires the `release` environment as a trusted publisher. The publish job uses Node 24 and npm 11.5.1+, the minimum that can exchange the GitHub OIDC token.
 
 ## [0.1.0] - 2026-09-03
 

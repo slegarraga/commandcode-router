@@ -6,7 +6,7 @@
 4. Confirm the live catalog contains every shipped profile and inspect dependency licenses and `npm audit`.
 5. Move relevant entries from `Unreleased` to the version and date in `CHANGELOG.md`.
 6. Update `package.json` with `npm version` and review the generated commit and tag. The git tag must be `v` plus the `package.json` version (`v0.1.1` for `0.1.1`).
-7. Push the tag and create GitHub release notes. The Release workflow publishes to npm with provenance from the protected `release` environment via OIDC. Do not put an npm token in repository secrets, and do not set `registry-url` on `setup-node` — that writes an empty `NODE_AUTH_TOKEN` and the registry 404s the publish.
+7. Push the tag and create GitHub release notes. The Release workflow publishes to npm with provenance from the protected `release` environment via OIDC. It uses Node 24 and npm 11.5.1+, which is the minimum that can exchange the GitHub OIDC token. Do not put an npm token in repository secrets.
 8. Install the published package into an isolated `CODEX_HOME` and repeat `doctor`, one native turn, and one Command Code turn.
 
 Trusted publisher on npmjs.com (package Access) must match:
