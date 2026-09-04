@@ -4,6 +4,12 @@ All notable changes will be documented here. The project follows [Semantic Versi
 
 ## [Unreleased]
 
+## [0.1.2] - 2026-09-04
+
+### Fixed
+
+- The local proxy no longer rejects Codex turns with a 16 MiB request-body cap. Long threads, tools, and attachments are forwarded as-is.
+
 ## [0.1.1] - 2026-09-03
 
 ### Changed
