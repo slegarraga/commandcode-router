@@ -32,10 +32,16 @@ Use Command Code models inside Codex. Headless by design: no menu bar item, tray
 Node.js 22.19+ and a Command Code API key with Provider API access (GOAT or higher). Create the key in [Studio](https://commandcode.ai/settings/keys).
 
 ```sh
-npx --yes github:slegarraga/commandcode-router install
+npx --yes commandcode-router install
 ```
 
 `install` asks for the API key if one is not already stored, checks it against the official Provider API, saves it with mode `0600`, writes the Codex integration, and starts the headless service. Fully quit Codex (Cmd+Q on macOS) and reopen it. Command Code models then appear beside native models in the picker.
+
+To install a specific git revision instead of the published package:
+
+```sh
+npx --yes github:slegarraga/commandcode-router install
+```
 
 ### Install From a Clone
 
