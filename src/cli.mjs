@@ -3,6 +3,7 @@ import { Writable } from "node:stream";
 import { createInterface } from "node:readline/promises";
 import { fileURLToPath } from "node:url";
 
+import { discoverModelIds } from "./catalog.mjs";
 import { install, refreshCatalog, uninstall } from "./installer.mjs";
 import { atomicWrite } from "./files.mjs";
 import { loadApiKey, removeApiKey, storeApiKey } from "./key-store.mjs";
@@ -60,6 +61,7 @@ async function secretInput() {
       callback();
     },
   });
+  process.stdout.write("Create a key at https://commandcode.ai/settings/keys (GOAT or higher).\n");
   const readline = createInterface({ input: process.stdin, output, terminal: true });
   const answer = readline.question("Command Code API key (hidden): ");
   muted = true;
@@ -72,11 +74,16 @@ async function secretInput() {
 
 /**
  * @param {ReturnType<typeof routerPaths>} paths
- * @param {() => Promise<string>} [readSecret]
+ * @param {{
+ *   readSecret?: () => Promise<string>,
+ *   verify?: (apiKey: string) => Promise<unknown>,
+ * }} [options]
  */
-export async function ensureStoredApiKey(paths, readSecret = secretInput) {
+export async function ensureStoredApiKey(paths, options = {}) {
   if (loadApiKey({ paths })) return false;
-  storeApiKey(await readSecret(), { paths });
+  const value = await (options.readSecret ?? secretInput)();
+  await (options.verify ?? ((apiKey) => discoverModelIds({ apiKey })))(value);
+  storeApiKey(value, { paths });
   return true;
 }
 
@@ -126,9 +133,14 @@ export async function main(args) {
     process.stdout.write(`${version}\n`);
     return;
   }
+  if (!supportedNode(process.versions.node)) {
+    throw new Error(`commandcode-router needs Node.js 22.19 or newer. This process is v${process.versions.node}.`);
+  }
 
   if (command === "key" && subject === "set") {
-    storeApiKey(await secretInput(), { paths });
+    const value = await secretInput();
+    await discoverModelIds({ apiKey: value });
+    storeApiKey(value, { paths });
     process.stdout.write("Command Code API key stored with mode 0600.\n");
     if (loadState({ paths })) installService({ paths });
     return;
@@ -150,7 +162,8 @@ export async function main(args) {
       process.stdout.write("Command Code API key stored with mode 0600.\n");
     }
     const result = await install({ paths, port, service: !args.includes("--no-service") });
-    process.stdout.write(`Installed ${result.modelCount} reviewed Command Code models. Fully quit and reopen Codex.\n`);
+    process.stdout.write(`Installed ${result.modelCount} reviewed Command Code models.\n`);
+    process.stdout.write("Fully quit Codex (Cmd+Q on macOS) and reopen it. Command Code models appear in the picker.\n");
     return;
   }
 

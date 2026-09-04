@@ -24,21 +24,48 @@ test("enforces the documented Node.js floor", () => {
 test("install prompts only when no API key is stored", async (t) => {
   const paths = fixture(t);
   let reads = 0;
+  let verified = 0;
 
-  assert.equal(await ensureStoredApiKey(paths, async () => {
-    reads += 1;
-    return "first-key";
+  assert.equal(await ensureStoredApiKey(paths, {
+    readSecret: async () => {
+      reads += 1;
+      return "first-key";
+    },
+    verify: async () => {
+      verified += 1;
+    },
   }), true);
   assert.equal(loadApiKey({ paths, env: {} }), "first-key");
   assert.equal(reads, 1);
+  assert.equal(verified, 1);
 
-  assert.equal(await ensureStoredApiKey(paths, async () => {
-    reads += 1;
-    return "second-key";
+  assert.equal(await ensureStoredApiKey(paths, {
+    readSecret: async () => {
+      reads += 1;
+      return "second-key";
+    },
+    verify: async () => {
+      verified += 1;
+    },
   }), false);
   assert.equal(loadApiKey({ paths, env: {} }), "first-key");
   assert.equal(reads, 1);
+  assert.equal(verified, 1);
 
   storeApiKey("replaced-key", { paths });
   assert.equal(loadApiKey({ paths, env: {} }), "replaced-key");
+});
+
+test("does not store a Command Code key that the Provider API rejects", async (t) => {
+  const paths = fixture(t);
+  await assert.rejects(
+    () => ensureStoredApiKey(paths, {
+      readSecret: async () => "bad-key",
+      verify: async () => {
+        throw new Error("Command Code rejected the configured API key.");
+      },
+    }),
+    { message: "Command Code rejected the configured API key." },
+  );
+  assert.equal(loadApiKey({ paths, env: {} }), "");
 });

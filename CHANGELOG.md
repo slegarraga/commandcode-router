@@ -6,7 +6,7 @@ All notable changes will be documented here. The project follows [Semantic Versi
 
 ### Changed
 
-- `commandcode-router install` now asks for a Command Code API key when none is stored, so the happy path is a single command after `npm link`.
+- `commandcode-router install` asks for a Command Code API key when none is stored, checks it against the official Provider API before saving, and is the one-command happy path (`npx --yes github:slegarraga/commandcode-router install`).
 
 ### Added
 

@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import { fileURLToPath } from "node:url";
 
+import { RouterError } from "./errors.mjs";
 import { COMMAND_CODE_API } from "./provider.mjs";
 import { modelProfiles } from "./models.mjs";
 
@@ -64,6 +65,23 @@ function catalogEntry(profile) {
   };
 }
 
+/** @param {number} status @param {string} body */
+function discoveryError(status, body) {
+  if (status === 401) {
+    return new RouterError("invalid_api_key", "Command Code rejected the configured API key.", { status: 401 });
+  }
+  if (status === 403 && body.includes("upgrade_required")) {
+    return new RouterError(
+      "upgrade_required",
+      "Command Code Provider API access requires a GOAT or higher plan.",
+      { status: 403 },
+    );
+  }
+  return new RouterError("discovery_failed", `Command Code model discovery failed with HTTP ${status}.`, {
+    status: status >= 400 && status < 500 ? status : 502,
+  });
+}
+
 /**
  * Unknown upstream models stay out of Codex until a reviewed profile ships.
  * @param {{ fetch?: typeof globalThis.fetch, apiKey?: string, baseURL?: string }} [options]
@@ -72,7 +90,7 @@ export async function discoverModelIds(options = {}) {
   const fetch = options.fetch ?? globalThis.fetch;
   const headers = options.apiKey ? { authorization: `Bearer ${options.apiKey}` } : undefined;
   const response = await fetch(`${options.baseURL ?? COMMAND_CODE_API}/models`, { headers });
-  if (!response.ok) throw new Error(`Command Code model discovery failed with HTTP ${response.status}.`);
+  if (!response.ok) throw discoveryError(response.status, await response.text().catch(() => ""));
   const payload = /** @type {{ data?: unknown }} */ (await response.json());
   if (!payload || typeof payload !== "object" || !Array.isArray(payload.data)) {
     throw new Error("Command Code returned an invalid model catalog.");
