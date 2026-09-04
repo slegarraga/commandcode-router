@@ -8,6 +8,10 @@ All notable changes will be documented here. The project follows [Semantic Versi
 
 - `commandcode-router install` asks for a Command Code API key when none is stored, checks it against the official Provider API before saving, and is the one-command happy path (`npx --yes github:slegarraga/commandcode-router install`).
 
+### Fixed
+
+- Native Codex turns no longer fail when `POST /v1/responses` is empty, gzipped, or not JSON. JSON parsing is only a routing sniff for `commandcode/*` slugs; other bodies are forwarded unchanged.
+
 ### Added
 
 - Headless Codex integration with native-model pass-through.
