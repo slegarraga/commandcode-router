@@ -32,6 +32,7 @@ jobs:
       - if: matrix.node == '22.19.0'
         run: npm run test:coverage
       - name: Audit
+        if: matrix.node == '22.19.0'
         run: |
           for attempt in 1 2 3; do
             if npm audit --audit-level=high; then
