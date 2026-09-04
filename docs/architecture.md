@@ -6,7 +6,7 @@
 
 1. Codex reads a merged local model catalog.
 2. Codex sends Responses API traffic to a loopback capability URL.
-3. Native model slugs pass through to the native Codex API with the caller's authorization.
+3. Native model slugs pass through to the native Codex API with the caller's authorization. The router parses `POST /v1/responses` only to detect `commandcode/*` slugs; empty, gzipped, or non-JSON bodies are forwarded unchanged.
 4. `commandcode/*` slugs are mapped to reviewed upstream model IDs.
 5. Responses history and tools become normalized model messages.
 6. The request goes to the official Command Code Chat Completions or Messages endpoint.
