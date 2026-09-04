@@ -16,6 +16,9 @@
   "bin": {
     "commandcode-router": "./bin/commandcode-router.mjs"
   },
+  "publishConfig": {
+    "access": "public"
+  },
   "files": [
     "bin",
     "config",
