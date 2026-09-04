@@ -6,7 +6,6 @@ import { publicError, RouterError } from "./errors.mjs";
 import { commandCodeStream } from "./provider.mjs";
 import { ResponsesStream } from "./responses-stream.mjs";
 
-const BODY_LIMIT = 16 * 1024 * 1024;
 const HOP_BY_HOP = new Set([
   "connection",
   "content-length",
@@ -23,12 +22,7 @@ const HOP_BY_HOP = new Set([
 /** @param {http.IncomingMessage} request */
 async function body(request) {
   const chunks = [];
-  let size = 0;
   for await (const chunk of request) {
-    size += chunk.length;
-    if (size > BODY_LIMIT) {
-      throw new RouterError("request_too_large", "The request body is too large.", { status: 413 });
-    }
     chunks.push(chunk);
   }
   return Buffer.concat(chunks);

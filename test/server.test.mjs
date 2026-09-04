@@ -176,6 +176,34 @@ test("forwards non-JSON Responses bodies to the native Codex API", async (t) => 
   ]);
 });
 
+test("accepts Responses bodies larger than 16 MiB", async (t) => {
+  let received = 0;
+  const server = /** @type {import("node:http").Server} */ (await startServer({
+    secret: SECRET,
+    apiKey: "key",
+    port: 0,
+    nativeBaseURL: "https://native.test/backend-api/codex",
+    fetch: async (_url, init) => {
+      const raw = init?.body;
+      received = raw instanceof Uint8Array ? raw.byteLength : 0;
+      return new Response("native", { status: 200 });
+    },
+    logger: { info() {}, error() {} },
+  }));
+  t.after(() => server.close());
+
+  const huge = Buffer.alloc(16 * 1024 * 1024 + 1, 120);
+  const response = await fetch(`${origin(server)}/_commandcode/${SECRET}/v1/responses`, {
+    method: "POST",
+    headers: { "content-type": "application/octet-stream" },
+    body: huge,
+  });
+
+  assert.equal(response.status, 200);
+  assert.equal(await response.text(), "native");
+  assert.equal(received, huge.length);
+});
+
 test("routes gzipped Command Code Responses JSON", async (t) => {
   const server = /** @type {import("node:http").Server} */ (await startServer({
     secret: SECRET,
