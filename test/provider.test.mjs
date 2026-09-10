@@ -101,6 +101,34 @@ test("routes non-Claude models through Command Code chat completions", async () 
   assert.equal(last.type, "finish");
 });
 
+test("sends Responses instructions as a system message", async () => {
+  /** @type {Array<{ url: string, init: RequestInit | undefined }>} */
+  const captures = [];
+  const result = commandCodeStream({
+    model: "commandcode/deepseek/example",
+    instructions: "Be precise.",
+    input: "hello",
+  }, {
+    apiKey: "test-key",
+    baseURL: "https://command.test/v1",
+    fetch: async (url, init) => {
+      captures.push({ url: String(url), init });
+      return new Response(openAiSse(), {
+        status: 200,
+        headers: { "content-type": "text/event-stream" },
+      });
+    },
+  });
+  const stream = await parts(result);
+
+  assert.ok(!stream.some((part) => part.type === "error"), "instructions must not produce an SDK prompt error");
+  const requestBody = JSON.parse(String(captures[0]?.init?.body));
+  assert.deepEqual(requestBody.messages[0], { role: "system", content: "Be precise." });
+  const text = stream.find((part) => part.type === "text-delta");
+  assert.ok(text && text.type === "text-delta");
+  assert.equal(text.text, "hello");
+});
+
 test("routes Claude models through Command Code messages", async () => {
   /** @type {Array<{ url: string, init: RequestInit | undefined }>} */
   const captures = [];

@@ -16,6 +16,7 @@ export function routerPaths(options = {}) {
     state: path.join(stateDirectory, "state.json"),
     credentials: path.join(stateDirectory, "credentials.json"),
     catalog: path.join(stateDirectory, "models.json"),
+    codexModelsCache: path.join(codexHome, "models_cache.json"),
     backup: path.join(stateDirectory, "config.before-install.toml"),
     pid: path.join(stateDirectory, "router.pid"),
     log: path.join(stateDirectory, "router.log"),

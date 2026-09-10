@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { modelMessages, modelToolChoice, modelTools } from "../src/responses-request.mjs";
+import { modelMessages, modelSystem, modelToolChoice, modelTools } from "../src/responses-request.mjs";
 
 test("converts Responses history without losing tool identity", () => {
   const messages = modelMessages({
@@ -28,7 +28,6 @@ test("converts Responses history without losing tool identity", () => {
   });
 
   assert.deepEqual(messages, [
-    { role: "system", content: "Be precise." },
     { role: "user", content: [{ type: "text", text: "Read the file" }] },
     {
       role: "assistant",
@@ -49,6 +48,23 @@ test("converts Responses history without losing tool identity", () => {
       }],
     },
   ]);
+});
+
+test("collects instructions, developer, and system content for the system option", () => {
+  const request = {
+    instructions: "Be precise.",
+    input: [
+      { type: "message", role: "developer", content: [{ type: "input_text", text: "Env: macOS" }] },
+      { type: "message", role: "user", content: [{ type: "input_text", text: "hi" }] },
+      { type: "message", role: "system", content: "Stay terse." },
+    ],
+  };
+
+  assert.equal(modelSystem(request), "Be precise.\n\nEnv: macOS\n\nStay terse.");
+  assert.deepEqual(modelMessages(request), [
+    { role: "user", content: [{ type: "text", text: "hi" }] },
+  ]);
+  assert.equal(modelSystem({ input: "hello" }), undefined);
 });
 
 test("builds SDK tools from Responses function definitions", () => {

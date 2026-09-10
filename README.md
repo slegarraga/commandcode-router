@@ -54,7 +54,9 @@ npm link
 commandcode-router install
 ```
 
-The installer fails closed if `openai_base_url` or `model_catalog_json` already belongs to you or another router. Remove that integration intentionally before installing this one.
+The installer fails closed if `openai_base_url`, `model_provider`, `model_providers.commandcode_router`, or `model_catalog_json` already belongs to you or another router. Remove that integration intentionally before installing this one.
+
+The integration selects a dedicated `commandcode_router` provider with `supports_websockets = false`. Codex then uses its HTTPS transport directly instead of attempting the Responses WebSocket first, which the local router does not serve.
 
 ## Commands
 
@@ -72,6 +74,8 @@ commandcode-router key remove       Delete the API key and stop the service
 
 `COMMAND_CODE_API_KEY` and `COMMANDCODE_API_KEY` override the stored key. `CODEX_HOME` is respected.
 For an isolated or foreground-only setup, `install --no-service` writes the integration without registering a background service; run `serve` yourself and use `uninstall --no-service` when removing it.
+
+The headless service keeps the picker catalog merged automatically. Changes from Codex's account-scoped catalog are applied immediately, while reviewed Command Code availability is reconciled every five minutes. A missing first-run Codex cache falls back to the catalog bundled with the installed CLI; an invalid cache preserves the last known-good merged catalog.
 
 ## Architecture
 

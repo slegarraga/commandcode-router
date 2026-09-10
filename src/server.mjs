@@ -29,6 +29,29 @@ async function body(request) {
 }
 
 /**
+ * Codex request compression. The bundled client asks for zstd when
+ * `enable_request_compression` is on, so the routing sniff must understand it.
+ * Unknown encodings pass through untouched.
+ *
+ * @param {Buffer} raw
+ * @param {string} encoding
+ */
+function decompressBody(raw, encoding) {
+  if (
+    encoding.includes("zstd") ||
+    (raw[0] === 0x28 && raw[1] === 0xb5 && raw[2] === 0x2f && raw[3] === 0xfd)
+  ) {
+    return zlib.zstdDecompressSync(raw);
+  }
+  if (encoding.includes("br")) return zlib.brotliDecompressSync(raw);
+  if (encoding.includes("deflate")) return zlib.inflateSync(raw);
+  if (encoding.includes("gzip") || (raw[0] === 0x1f && raw[1] === 0x8b)) {
+    return zlib.gunzipSync(raw);
+  }
+  return raw;
+}
+
+/**
  * Best-effort JSON sniff for Command Code routing.
  * Native pass-through keeps the original bytes when the body is empty,
  * gzipped, or not JSON.
@@ -38,14 +61,12 @@ async function body(request) {
  */
 function decodeResponsesPayload(bytes, headers) {
   if (!bytes.length) return null;
-  let raw = bytes;
   const encoding = String(headers["content-encoding"] ?? "").toLowerCase();
-  if (encoding.includes("gzip") || (raw[0] === 0x1f && raw[1] === 0x8b)) {
-    try {
-      raw = zlib.gunzipSync(raw);
-    } catch {
-      return null;
-    }
+  let raw = bytes;
+  try {
+    raw = decompressBody(raw, encoding);
+  } catch {
+    return null;
   }
   const text = raw.toString("utf8").replace(/^\uFEFF/, "").trim();
   if (!text) return null;

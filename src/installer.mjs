@@ -46,6 +46,26 @@ export function bundledCatalog(run = (command, args) =>
 }
 
 /**
+ * Prefer Codex's account-scoped remote cache. The bundled catalog is only a
+ * bootstrap fallback for a Codex home that has not fetched its first catalog.
+ *
+ * @param {{ paths?: ReturnType<typeof routerPaths>, run?: (command: string, args: string[]) => string }} [options]
+ */
+export function currentNativeCatalog(options = {}) {
+  const paths = options.paths ?? routerPaths();
+  try {
+    const parsed = JSON.parse(fs.readFileSync(paths.codexModelsCache, "utf8"));
+    if (!parsed || typeof parsed !== "object" || !Array.isArray(parsed.models) || parsed.models.length === 0) {
+      throw new Error("Codex returned an invalid cached model catalog.");
+    }
+    return parsed;
+  } catch (error) {
+    if (!(error && typeof error === "object" && "code" in error && error.code === "ENOENT")) throw error;
+    return bundledCatalog(options.run);
+  }
+}
+
+/**
  * @param {{
  *   paths?: ReturnType<typeof routerPaths>,
  *   fetch?: typeof globalThis.fetch,
@@ -58,10 +78,93 @@ export async function refreshCatalog(options = {}) {
     fetch: options.fetch,
     apiKey: loadApiKey({ paths }),
   });
-  const catalog = mergedCatalog(options.nativeCatalog ?? bundledCatalog(), { availableModelIds });
+  const catalog = mergedCatalog(options.nativeCatalog ?? currentNativeCatalog({ paths }), { availableModelIds });
   privateDirectory(paths.stateDirectory);
-  atomicWrite(paths.catalog, `${JSON.stringify(catalog, null, 2)}\n`, 0o600);
+  const encoded = `${JSON.stringify(catalog, null, 2)}\n`;
+  if (contentsOrEmpty(paths.catalog) !== encoded) atomicWrite(paths.catalog, encoded, 0o600);
   return catalog.models.filter((model) => String(model.slug).startsWith("commandcode")).length;
+}
+
+/**
+ * Keep the generated picker catalog reconciled with both providers. Codex
+ * cache changes trigger an immediate refresh; the interval also discovers
+ * newly available reviewed Command Code models.
+ *
+ * @param {{
+ *   paths?: ReturnType<typeof routerPaths>,
+ *   refresh?: () => Promise<unknown>,
+ *   logger?: Pick<Console, "info" | "error">,
+ *   watchFile?: (filename: string, options: { interval: number, persistent: boolean }, listener: (current: Pick<fs.Stats, "mtimeMs" | "size" | "ino">, previous: Pick<fs.Stats, "mtimeMs" | "size" | "ino">) => void) => void,
+ *   unwatchFile?: (filename: string, listener: (current: Pick<fs.Stats, "mtimeMs" | "size" | "ino">, previous: Pick<fs.Stats, "mtimeMs" | "size" | "ino">) => void) => void,
+ *   setIntervalFn?: (callback: () => void, interval: number) => { unref?: () => void },
+ *   clearIntervalFn?: (timer: { unref?: () => void }) => void,
+ *   watchIntervalMs?: number,
+ *   refreshIntervalMs?: number,
+ * }} [options]
+ */
+export async function startCatalogSync(options = {}) {
+  const paths = options.paths ?? routerPaths();
+  const logger = options.logger ?? console;
+  const refresh = options.refresh ?? (() => refreshCatalog({ paths }));
+  const watchFile = options.watchFile ?? ((filename, watchOptions, listener) => {
+    fs.watchFile(filename, watchOptions, listener);
+  });
+  const unwatchFile = options.unwatchFile ?? ((filename, listener) => fs.unwatchFile(filename, listener));
+  const setIntervalFn = options.setIntervalFn ?? ((callback, interval) => setInterval(callback, interval));
+  const clearIntervalFn = options.clearIntervalFn ?? ((timer) => clearInterval(/** @type {NodeJS.Timeout} */ (timer)));
+  let closed = false;
+  let running = false;
+  let queued = false;
+
+  const reconcile = async () => {
+    if (closed) return;
+    if (running) {
+      queued = true;
+      return;
+    }
+    running = true;
+    do {
+      queued = false;
+      try {
+        await refresh();
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "Unknown catalog refresh error.";
+        logger.error(`Catalog refresh failed: ${message}`);
+      }
+    } while (queued && !closed);
+    running = false;
+  };
+
+  await reconcile();
+
+  /**
+   * @param {Pick<fs.Stats, "mtimeMs" | "size" | "ino">} current
+   * @param {Pick<fs.Stats, "mtimeMs" | "size" | "ino">} previous
+   */
+  const listener = (current, previous) => {
+    if (
+      current.mtimeMs === previous.mtimeMs &&
+      current.size === previous.size &&
+      current.ino === previous.ino
+    ) return;
+    void reconcile();
+  };
+  watchFile(paths.codexModelsCache, {
+    interval: options.watchIntervalMs ?? 1_000,
+    persistent: false,
+  }, listener);
+  const timer = setIntervalFn(() => void reconcile(), options.refreshIntervalMs ?? 5 * 60_000);
+  timer.unref?.();
+
+  return {
+    refresh: reconcile,
+    close() {
+      if (closed) return;
+      closed = true;
+      unwatchFile(paths.codexModelsCache, listener);
+      clearIntervalFn(timer);
+    },
+  };
 }
 
 /**

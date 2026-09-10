@@ -56,6 +56,24 @@ test("install prompts only when no API key is stored", async (t) => {
   assert.equal(loadApiKey({ paths, env: {} }), "replaced-key");
 });
 
+test("persists an environment-provided key during install", async (t) => {
+  const paths = fixture(t);
+  const previous = process.env.COMMAND_CODE_API_KEY;
+  process.env.COMMAND_CODE_API_KEY = "env-key";
+  t.after(() => {
+    if (previous === undefined) delete process.env.COMMAND_CODE_API_KEY;
+    else process.env.COMMAND_CODE_API_KEY = previous;
+  });
+
+  const stored = await ensureStoredApiKey(paths, {
+    readSecret: async () => "env-key",
+    verify: async () => {},
+  });
+
+  assert.equal(stored, true);
+  assert.equal(loadApiKey({ paths, env: {} }), "env-key");
+});
+
 test("does not store a Command Code key that the Provider API rejects", async (t) => {
   const paths = fixture(t);
   await assert.rejects(

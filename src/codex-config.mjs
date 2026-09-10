@@ -8,10 +8,18 @@ function tomlString(value) {
 
 /** @param {{ baseURL: string, catalogPath: string }} options */
 export function managedBlock(options) {
+  const provider = [
+    'name = "Command Code Router"',
+    `base_url = ${tomlString(options.baseURL)}`,
+    'wire_api = "responses"',
+    "requires_openai_auth = true",
+    "supports_websockets = false",
+  ].join(", ");
   return [
     START,
-    `openai_base_url = ${tomlString(options.baseURL)}`,
+    'model_provider = "commandcode_router"',
     `model_catalog_json = ${tomlString(options.catalogPath)}`,
+    `model_providers.commandcode_router = { ${provider} }`,
     END,
   ].join("\n");
 }
@@ -43,17 +51,22 @@ export function installConfig(contents, options) {
   const markers = markerRange(contents);
   if (markers) {
     const existing = contents.slice(markers.start, markers.end);
-    if (existing !== expected) {
-      throw new Error("Codex config is managed by a different commandcode-router installation.");
-    }
-    return contents;
+    if (existing === expected) return contents;
+    // Our own block from an earlier revision: upgrade it in place.
+    return `${contents.slice(0, markers.start)}${expected}${contents.slice(markers.end)}`;
   }
 
   const rootContents = root(contents);
-  for (const key of ["openai_base_url", "model_catalog_json"]) {
+  for (const key of ["openai_base_url", "model_catalog_json", "model_provider"]) {
     if (new RegExp(`^\\s*${key}\\s*=`, "m").test(rootContents)) {
       throw new Error(`Refusing to replace user-owned ${key}.`);
     }
+  }
+  if (
+    /^\s*model_providers\.commandcode_router\s*=/m.test(rootContents) ||
+    /^\s*\[\s*model_providers\.commandcode_router\s*\]/m.test(contents)
+  ) {
+    throw new Error("Refusing to replace user-owned model_providers.commandcode_router.");
   }
 
   return `${expected}\n\n${contents.replace(/^\s+/, "")}`;

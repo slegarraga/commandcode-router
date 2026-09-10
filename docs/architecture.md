@@ -4,7 +4,7 @@
 
 ## Request Path
 
-1. Codex reads a merged local model catalog.
+1. Codex reads a merged local model catalog. The router watches Codex's account-scoped remote cache and periodically reconciles reviewed Command Code availability, writing changes atomically.
 2. Codex sends Responses API traffic to a loopback capability URL.
 3. Native model slugs pass through to the native Codex API with the caller's authorization. The router parses `POST /v1/responses` only to detect `commandcode/*` slugs; empty, gzipped, or non-JSON bodies are forwarded unchanged.
 4. `commandcode/*` slugs are mapped to reviewed upstream model IDs.
@@ -22,7 +22,7 @@ The router never exchanges native Codex credentials for Command Code credentials
 - `src/server.mjs`: loopback HTTP boundary and native pass-through.
 - `src/catalog.mjs`: fail-closed native and Command Code catalog merge.
 - `src/codex-config.mjs`: ownership-aware config editing.
-- `src/installer.mjs`: transactional installation orchestration.
+- `src/installer.mjs`: transactional installation orchestration and continuous catalog synchronization.
 - `src/service.mjs`: headless process lifecycle.
 - `src/cli.mjs`: human-facing commands.
 

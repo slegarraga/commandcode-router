@@ -28,6 +28,20 @@ test("merges native models and only discovered reviewed profiles", () => {
   assert.equal(catalog.models[1].apply_patch_tool_type, "freeform");
 });
 
+test("keeps native models authoritative and removes stale router duplicates", () => {
+  const catalog = mergedCatalog({ models: [
+    { slug: "gpt-6-astra", display_name: "Astra" },
+    { slug: "gpt-6-astra", display_name: "Duplicate" },
+    { slug: "commandcode/step-3.7-flash", display_name: "Stale" },
+  ] }, { availableModelIds: new Set(["stepfun/Step-3.7-Flash"]) });
+
+  assert.deepEqual(catalog.models.map((model) => model.slug), [
+    "gpt-6-astra",
+    "commandcode/step-3.7-flash",
+  ]);
+  assert.equal(catalog.models[0].display_name, "Astra");
+});
+
 test("discovers model ids from the official provider shape", async () => {
   const ids = await discoverModelIds({
     baseURL: "https://command.test/v1",
