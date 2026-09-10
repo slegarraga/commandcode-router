@@ -1,6 +1,6 @@
 {
   "name": "commandcode-router",
-  "version": "0.1.2",
+  "version": "0.2.0",
   "description": "Use Command Code models inside Codex.",
   "type": "module",
   "license": "MIT",
