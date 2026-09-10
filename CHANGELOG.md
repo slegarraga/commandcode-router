@@ -6,6 +6,7 @@ All notable changes will be documented here. The project follows [Semantic Versi
 
 ### Fixed
 
+- Request compression no longer hides Command Code routing. Codex compresses Responses bodies with zstd when `enable_request_compression` is on; the router now decodes zstd (and Brotli/deflate) before sniffing the model, so those turns reach Command Code instead of the native origin.
 - Command Code turns no longer fail with `Invalid prompt: System messages are not allowed`. The Responses `instructions` and any `system`/`developer` input items are now passed through the AI SDK `system` option instead of as conversation messages.
 - A model that is not included in the caller's Command Code plan now reports an actionable message instead of a generic upstream failure.
 - The generated picker catalog now follows Codex's account-scoped remote catalog and continuously merges it with reviewed Command Code models, instead of freezing native availability at install time.

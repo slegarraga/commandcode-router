@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { gzipSync } from "node:zlib";
+import { gzipSync, zstdCompressSync } from "node:zlib";
 import test from "node:test";
 
 import { startServer } from "../src/server.mjs";
@@ -228,6 +228,38 @@ test("routes gzipped Command Code Responses JSON", async (t) => {
       "content-encoding": "gzip",
     },
     body: gzipSync(payload),
+  });
+  const stream = await response.text();
+
+  assert.equal(response.status, 200);
+  assert.match(stream, /event: response\.output_text\.delta/);
+  assert.match(stream, /"delta":"hello"/);
+});
+
+test("routes zstd-compressed Command Code Responses JSON", async (t) => {
+  const server = /** @type {import("node:http").Server} */ (await startServer({
+    secret: SECRET,
+    apiKey: "key",
+    port: 0,
+    fetch: async () => new Response(openAiSse(), {
+      headers: { "content-type": "text/event-stream" },
+    }),
+    logger: { info() {}, error() {} },
+  }));
+  t.after(() => server.close());
+
+  const payload = JSON.stringify({
+    model: "commandcode/deepseek/example",
+    input: "hello",
+    stream: true,
+  });
+  const response = await fetch(`${origin(server)}/_commandcode/${SECRET}/v1/responses`, {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      "content-encoding": "zstd",
+    },
+    body: zstdCompressSync(payload),
   });
   const stream = await response.text();
 
