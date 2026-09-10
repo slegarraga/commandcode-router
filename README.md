@@ -54,7 +54,9 @@ npm link
 commandcode-router install
 ```
 
-The installer fails closed if `openai_base_url` or `model_catalog_json` already belongs to you or another router. Remove that integration intentionally before installing this one.
+The installer fails closed if `openai_base_url`, `model_provider`, `model_providers.commandcode_router`, or `model_catalog_json` already belongs to you or another router. Remove that integration intentionally before installing this one.
+
+The integration selects a dedicated `commandcode_router` provider with `supports_websockets = false`. Codex then uses its HTTPS transport directly instead of attempting the Responses WebSocket first, which the local router does not serve.
 
 ## Commands
 

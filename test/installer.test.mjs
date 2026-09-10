@@ -40,7 +40,9 @@ test("installs and uninstalls transactionally in an isolated Codex home", async 
   const configured = fs.readFileSync(paths.codexConfig, "utf8");
   const catalog = JSON.parse(fs.readFileSync(paths.catalog, "utf8"));
   assert.equal(result.modelCount, 1);
-  assert.match(configured, /openai_base_url = "http:\/\/127\.0\.0\.1:4399\/_commandcode\//);
+  assert.match(configured, /model_provider = "commandcode_router"/);
+  assert.match(configured, /supports_websockets = false/);
+  assert.match(configured, /model_providers\.commandcode_router = \{ .*http:\/\/127\.0\.0\.1:4399\/_commandcode\//);
   assert.match(configured, /model_catalog_json/);
   assert.deepEqual(catalog.models.map((/** @type {{ slug: string }} */ model) => model.slug), [
     "native",

@@ -6,6 +6,7 @@ All notable changes will be documented here. The project follows [Semantic Versi
 
 ### Fixed
 
+- Codex no longer spends five WebSocket reconnect attempts before reaching Command Code or the native origin. The integration now selects a dedicated `commandcode_router` model provider with `supports_websockets = false`, so Codex uses its HTTPS transport directly. Existing marker blocks are upgraded in place on the next install.
 - Request compression no longer hides Command Code routing. Codex compresses Responses bodies with zstd when `enable_request_compression` is on; the router now decodes zstd (and Brotli/deflate) before sniffing the model, so those turns reach Command Code instead of the native origin.
 - Command Code turns no longer fail with `Invalid prompt: System messages are not allowed`. The Responses `instructions` and any `system`/`developer` input items are now passed through the AI SDK `system` option instead of as conversation messages.
 - A model that is not included in the caller's Command Code plan now reports an actionable message instead of a generic upstream failure.
