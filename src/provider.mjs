@@ -4,7 +4,7 @@ import { streamText } from "ai";
 
 import { RouterError } from "./errors.mjs";
 import { profileFor } from "./models.mjs";
-import { modelMessages, modelToolChoice, modelTools } from "./responses-request.mjs";
+import { modelMessages, modelSystem, modelToolChoice, modelTools } from "./responses-request.mjs";
 
 export const COMMAND_CODE_API = "https://api.commandcode.ai/provider/v1";
 
@@ -84,6 +84,7 @@ export function commandCodeStream(request, options) {
   const budgetTokens = protocol === "anthropic" ? thinkingBudget(effort) : undefined;
   return streamText({
     model: provider(upstreamModel),
+    system: modelSystem(request),
     messages: modelMessages(request),
     tools,
     toolChoice: tools ? modelToolChoice(request.tool_choice) : undefined,

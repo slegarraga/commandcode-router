@@ -4,6 +4,12 @@ All notable changes will be documented here. The project follows [Semantic Versi
 
 ## [Unreleased]
 
+### Fixed
+
+- Command Code turns no longer fail with `Invalid prompt: System messages are not allowed`. The Responses `instructions` and any `system`/`developer` input items are now passed through the AI SDK `system` option instead of as conversation messages.
+- A model that is not included in the caller's Command Code plan now reports an actionable message instead of a generic upstream failure.
+- The generated picker catalog now follows Codex's account-scoped remote catalog and continuously merges it with reviewed Command Code models, instead of freezing native availability at install time.
+
 ## [0.1.2] - 2026-09-04
 
 ### Fixed

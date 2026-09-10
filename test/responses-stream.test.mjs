@@ -163,3 +163,22 @@ test("turns the official Go-plan entitlement error into actionable safe copy", (
   );
   assert.doesNotMatch(JSON.stringify(failed), /do-not-echo/);
 });
+
+test("explains a model that is not in the plan without echoing the body", () => {
+  const stream = new ResponsesStream({ model: "commandcode-messages/claude-opus-5" });
+  const frames = stream.started() + stream.part({
+    type: "error",
+    error: {
+      statusCode: 403,
+      responseBody: '{"type":"error","error":{"type":"permission_error","message":"MODEL_NOT_IN_PLAN: Claude Opus 5 available in Provider and above plans"},"secret":"do-not-echo"}',
+    },
+  });
+  const failed = events(frames).at(-1);
+
+  assert.equal(failed.type, "response.failed");
+  assert.equal(
+    failed.response.error.message,
+    "This model is not included in your Command Code plan. Pick another model or upgrade.",
+  );
+  assert.doesNotMatch(JSON.stringify(failed), /do-not-echo/);
+});

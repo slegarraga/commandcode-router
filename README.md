@@ -73,6 +73,8 @@ commandcode-router key remove       Delete the API key and stop the service
 `COMMAND_CODE_API_KEY` and `COMMANDCODE_API_KEY` override the stored key. `CODEX_HOME` is respected.
 For an isolated or foreground-only setup, `install --no-service` writes the integration without registering a background service; run `serve` yourself and use `uninstall --no-service` when removing it.
 
+The headless service keeps the picker catalog merged automatically. Changes from Codex's account-scoped catalog are applied immediately, while reviewed Command Code availability is reconciled every five minutes. A missing first-run Codex cache falls back to the catalog bundled with the installed CLI; an invalid cache preserves the last known-good merged catalog.
+
 ## Architecture
 
 ```text

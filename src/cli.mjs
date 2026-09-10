@@ -4,7 +4,7 @@ import { createInterface } from "node:readline/promises";
 import { fileURLToPath } from "node:url";
 
 import { discoverModelIds } from "./catalog.mjs";
-import { install, refreshCatalog, uninstall } from "./installer.mjs";
+import { install, refreshCatalog, startCatalogSync, uninstall } from "./installer.mjs";
 import { atomicWrite } from "./files.mjs";
 import { loadApiKey, removeApiKey, storeApiKey } from "./key-store.mjs";
 import { routerPaths } from "./paths.mjs";
@@ -108,13 +108,23 @@ async function serve(paths) {
   const apiKey = loadApiKey({ paths });
   if (!apiKey) throw new Error("Command Code API key is not configured.");
 
-  const server = /** @type {import("node:http").Server} */ (await startServer({
-    secret: state.secret,
-    port: state.port,
-    apiKey,
-  }));
+  const catalogSync = await startCatalogSync({ paths });
+  let server;
+  try {
+    server = /** @type {import("node:http").Server} */ (await startServer({
+      secret: state.secret,
+      port: state.port,
+      apiKey,
+    }));
+  } catch (error) {
+    catalogSync.close();
+    throw error;
+  }
   atomicWrite(paths.pid, `${JSON.stringify({ pid: process.pid })}\n`, 0o600);
-  const shutdown = () => server.close(() => process.exit(0));
+  const shutdown = () => {
+    catalogSync.close();
+    server.close(() => process.exit(0));
+  };
   process.once("SIGINT", shutdown);
   process.once("SIGTERM", shutdown);
   process.stdout.write(`commandcode-router listening on 127.0.0.1:${state.port}\n`);

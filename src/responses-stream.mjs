@@ -16,6 +16,9 @@ function errorMessage(value) {
   if (status === 401) return "Command Code rejected the configured API key.";
   if (status === 429) return "Command Code rate-limited this request. Try again shortly.";
   if (status && status >= 500) return "Command Code is temporarily unavailable.";
+  if (responseBody.includes("MODEL_NOT_IN_PLAN")) {
+    return "This model is not included in your Command Code plan. Pick another model or upgrade.";
+  }
   return "Command Code could not complete this request.";
 }
 

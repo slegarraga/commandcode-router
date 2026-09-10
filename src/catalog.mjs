@@ -107,13 +107,21 @@ export async function discoverModelIds(options = {}) {
  * @param {{ availableModelIds?: Set<string> }} [options]
  */
 export function mergedCatalog(nativeCatalog, options = {}) {
-  const nativeModels = Array.isArray(nativeCatalog)
+  const rawNativeModels = Array.isArray(nativeCatalog)
     ? nativeCatalog
     : nativeCatalog &&
         typeof nativeCatalog === "object" &&
         Array.isArray(/** @type {{ models?: unknown }} */ (nativeCatalog).models)
       ? /** @type {{ models: unknown[] }} */ (nativeCatalog).models
       : [];
+  const seen = new Set();
+  const nativeModels = rawNativeModels.filter((model) => {
+    if (!model || typeof model !== "object") return false;
+    const slug = /** @type {{ slug?: unknown }} */ (model).slug;
+    if (typeof slug !== "string" || isCommandCodeSlug(slug) || seen.has(slug)) return false;
+    seen.add(slug);
+    return true;
+  });
   const profiles = modelProfiles().filter((profile) =>
     !options.availableModelIds || options.availableModelIds.has(profile.upstreamModel)
   );
@@ -123,4 +131,9 @@ export function mergedCatalog(nativeCatalog, options = {}) {
       ...profiles.map(catalogEntry),
     ],
   };
+}
+
+/** @param {string} slug */
+function isCommandCodeSlug(slug) {
+  return slug.startsWith("commandcode/") || slug.startsWith("commandcode-messages/");
 }

@@ -108,6 +108,52 @@ function customFormat(format) {
   }
 }
 
+/** @param {unknown} content */
+function systemText(content) {
+  if (Array.isArray(content)) {
+    return content
+      .flatMap((part) =>
+        object(part) &&
+        ["input_text", "text"].includes(String(part.type)) &&
+        typeof part.text === "string"
+          ? [part.text]
+          : []
+      )
+      .join("\n");
+  }
+  return text(content);
+}
+
+/**
+ * Responses carries the system prompt as top-level `instructions` plus optional
+ * `system`/`developer` input items. The AI SDK only accepts system content
+ * through the top-level `system` option, so collect it separately from the
+ * conversation messages.
+ * @param {Record<string, unknown>} request
+ * @returns {string | undefined}
+ */
+export function modelSystem(request) {
+  /** @type {string[]} */
+  const parts = [];
+  if (typeof request.instructions === "string" && request.instructions.trim()) {
+    parts.push(request.instructions);
+  }
+  if (Array.isArray(request.input)) {
+    for (const item of request.input) {
+      if (!object(item)) continue;
+      const role = item.role;
+      if (
+        (item.type === "message" || typeof role === "string") &&
+        (role === "system" || role === "developer")
+      ) {
+        const value = systemText(item.content);
+        if (value.trim()) parts.push(value);
+      }
+    }
+  }
+  return parts.length ? parts.join("\n\n") : undefined;
+}
+
 /**
  * Convert the Responses API's flat input list into AI SDK model messages.
  * @param {Record<string, unknown>} request
@@ -118,10 +164,6 @@ export function modelMessages(request) {
   const messages = [];
   /** @type {Map<string, string>} */
   const toolNames = new Map();
-
-  if (typeof request.instructions === "string" && request.instructions.trim()) {
-    messages.push({ role: "system", content: request.instructions });
-  }
 
   const input = typeof request.input === "string" ? [
     { role: "user", content: [{ type: "input_text", text: request.input }] },
@@ -173,7 +215,7 @@ export function modelMessages(request) {
       if (role === "assistant") {
         append(messages, { role: "assistant", content: assistantParts(item.content) });
       } else if (role === "system" || role === "developer") {
-        messages.push({ role: "system", content: text(item.content) });
+        continue;
       } else {
         append(messages, { role: "user", content: userParts(item.content) });
       }
