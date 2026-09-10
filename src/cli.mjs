@@ -80,7 +80,7 @@ async function secretInput() {
  * }} [options]
  */
 export async function ensureStoredApiKey(paths, options = {}) {
-  if (loadApiKey({ paths })) return false;
+  if (loadApiKey({ paths, env: {} })) return false;
   const value = await (options.readSecret ?? secretInput)();
   await (options.verify ?? ((apiKey) => discoverModelIds({ apiKey })))(value);
   storeApiKey(value, { paths });
